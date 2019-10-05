@@ -21,7 +21,8 @@ public class Match {
     private long endTimestamp;
     private boolean finished; //did every player leave before the match even ended?
     private Collection<String> winners;
-    private Collection<String> players;
+    private Collection<String> beginPlayers;
+    private Collection<String> endPlayers;
     private transient Collection<String> temporaryPlayers;
 
 }

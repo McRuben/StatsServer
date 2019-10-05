@@ -15,6 +15,6 @@ public class MatchPlayerRemoveHandler implements PacketHandler {
         if (player.getCurrentMatch() == null)
             return;
 
-        player.getCurrentMatch().getPlayers().remove(payload.getAsString());
+        player.getCurrentMatch().getEndPlayers().remove(payload.getAsString());
     }
 }

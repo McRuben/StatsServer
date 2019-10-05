@@ -110,7 +110,7 @@ public class GommeStatsServer {
         Match match;
         if (this.runningMatches.containsKey(serverId)) {
             match = this.runningMatches.get(serverId);
-            match.getPlayers().addAll(players);
+            match.getEndPlayers().addAll(players);
             match.getTemporaryPlayers().addAll(players);
         } else {
             match = new Match(
@@ -122,6 +122,7 @@ public class GommeStatsServer {
                     false,
                     null,
                     players,
+                    new ArrayList<>(players),
                     new HashSet<>(Collections.singletonList(player.getName()))
             );
             this.runningMatches.put(serverId, match);

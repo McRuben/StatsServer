@@ -41,7 +41,7 @@ public class DatabaseProvider {
                     PreparedStatement::executeUpdate
             );
             this.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS matches(matchId VARCHAR(36), gamemode VARCHAR(32), map VARCHAR(32), beginTimestamp LONG, endTimestamp LONG, finished BOOL, winners TEXT, players TEXT)",
+                    "CREATE TABLE IF NOT EXISTS matches(matchId VARCHAR(36), gamemode VARCHAR(32), map VARCHAR(32), beginTimestamp LONG, endTimestamp LONG, finished BOOL, winners TEXT, beginPlayers TEXT, endPlayers TEXT)",
                     PreparedStatement::executeUpdate
             );
         } catch (SQLException | ClassNotFoundException e) {
@@ -240,7 +240,7 @@ public class DatabaseProvider {
 
     public void insertMatch(Match match) {
         this.prepareStatement(
-                "INSERT INTO matches (matchId, gamemode, map, beginTimestamp, endTimestamp, finished, winners, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO matches (matchId, gamemode, map, beginTimestamp, endTimestamp, finished, winners, beginPlayers, endPlayers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 preparedStatement -> {
                     preparedStatement.setString(1, match.getServerId());
                     preparedStatement.setString(2, match.getGamemode());
@@ -249,7 +249,8 @@ public class DatabaseProvider {
                     preparedStatement.setLong(5, match.getEndTimestamp());
                     preparedStatement.setBoolean(6, match.isFinished());
                     preparedStatement.setString(7, this.gson.toJson(match.getWinners()));
-                    preparedStatement.setString(8, this.gson.toJson(match.getPlayers()));
+                    preparedStatement.setString(8, this.gson.toJson(match.getBeginPlayers()));
+                    preparedStatement.setString(9, this.gson.toJson(match.getEndPlayers()));
                     return preparedStatement.executeUpdate();
                 }
         );
@@ -303,7 +304,8 @@ public class DatabaseProvider {
                 resultSet.getLong("endTimestamp"),
                 resultSet.getBoolean("finished"),
                 this.gson.fromJson(resultSet.getString("winners"), STRING_COLLECTION_TYPE),
-                this.gson.fromJson(resultSet.getString("players"), STRING_COLLECTION_TYPE),
+                this.gson.fromJson(resultSet.getString("beginPlayers"), STRING_COLLECTION_TYPE),
+                this.gson.fromJson(resultSet.getString("endPlayers"), STRING_COLLECTION_TYPE),
                 null
         );
     }

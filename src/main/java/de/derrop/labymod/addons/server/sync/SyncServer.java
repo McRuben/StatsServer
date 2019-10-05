@@ -156,7 +156,7 @@ public class SyncServer {
                 SyncServer.this.connectedPlayers.remove(this.syncPlayer.getUniqueId());
 
                 if (this.syncPlayer.getCurrentMatch() != null) {
-                    this.syncPlayer.getCurrentMatch().getPlayers().remove(this.syncPlayer.getName());
+                    this.syncPlayer.getCurrentMatch().getEndPlayers().remove(this.syncPlayer.getName());
                     this.syncPlayer.getCurrentMatch().getTemporaryPlayers().remove(this.syncPlayer.getName());
                     if (this.syncPlayer.getCurrentMatch().getTemporaryPlayers().isEmpty()) {
                         SyncServer.this.statsServer.endMatchNotFinished(this.syncPlayer.getCurrentMatch());
