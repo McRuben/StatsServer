@@ -22,4 +22,8 @@ public class PlayerData {
     private String lastMatchId;
     private long timestamp;
 
+    public int getRank() {
+        return this.stats.containsKey("rank") ? Integer.parseInt(this.stats.get("rank")) : -1;
+    }
+
 }

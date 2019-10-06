@@ -32,7 +32,8 @@ public class MatchBeginHandler implements PacketHandler {
         String serverType = payload.getAsJsonObject().get("serverType").getAsString();
         String map = payload.getAsJsonObject().get("map").getAsString();
         Collection<String> players = this.gson.fromJson(payload.getAsJsonObject().get("players"), STRING_COLLECTION_TYPE);
+        String minecraftTexturePath = payload.getAsJsonObject().get("texturePath").getAsString();
 
-        this.statsServer.startMatch(player, serverType, map, serverId, players);
+        this.statsServer.startMatch(player, serverType, map, serverId, minecraftTexturePath, players);
     }
 }

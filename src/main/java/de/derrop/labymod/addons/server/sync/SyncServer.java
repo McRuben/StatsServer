@@ -18,18 +18,22 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-public class SyncServer {
+public class SyncServer implements Closeable {
 
     private final JsonParser jsonParser = new JsonParser();
 
     private EventLoopGroup bossGroup = Epoll.isAvailable() ? new EpollEventLoopGroup() : new NioEventLoopGroup();
     private EventLoopGroup workerGroup = Epoll.isAvailable() ? new EpollEventLoopGroup() : new NioEventLoopGroup();
+
+    private Channel channel;
 
     private GommeStatsServer statsServer;
 
@@ -42,7 +46,7 @@ public class SyncServer {
     }
 
     public void init(InetSocketAddress host) {
-        new ServerBootstrap()
+        this.channel = new ServerBootstrap()
                 .group(this.bossGroup, this.workerGroup)
                 .channel(Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<Channel>() {
@@ -54,7 +58,9 @@ public class SyncServer {
                                 .addLast(new PacketReader(new SyncPlayer(null, null, null, channel)));
                     }
                 })
-                .bind(host);
+                .bind(host)
+                .syncUninterruptibly()
+                .channel();
     }
 
     public CompletableFuture<JsonElement> sendQuery(SyncPlayer player, short packetId, JsonElement payload) {
@@ -79,6 +85,13 @@ public class SyncServer {
         if (!this.packetHandlers.containsKey(packetId))
             this.packetHandlers.put(packetId, new ArrayList<>());
         this.packetHandlers.get(packetId).add(packetHandler);
+    }
+
+    @Override
+    public void close() {
+        if (this.channel != null) {
+            this.channel.close().syncUninterruptibly();
+        }
     }
 
     private final class PacketReader extends SimpleChannelInboundHandler<String> {

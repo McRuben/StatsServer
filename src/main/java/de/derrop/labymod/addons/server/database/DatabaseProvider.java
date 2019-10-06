@@ -37,7 +37,7 @@ public class DatabaseProvider {
             this.databaseConnection = DriverManager.getConnection("jdbc:h2:" + new File("database/h2").getAbsolutePath());
 
             this.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS stats(uniqueId BINARY(16), name VARCHAR(64) NOT NULL, gamemode VARCHAR(32) NOT NULL, stats TEXT, timestamp LONG, lastMatchId VARCHAR(36))",
+                    "CREATE TABLE IF NOT EXISTS stats(uniqueId BINARY(16), rank LONG, name VARCHAR(64) NOT NULL, gamemode VARCHAR(32) NOT NULL, stats TEXT, timestamp LONG, lastMatchId VARCHAR(36))",
                     PreparedStatement::executeUpdate
             );
             this.prepareStatement(
@@ -96,13 +96,43 @@ public class DatabaseProvider {
         );
     }
 
+    public PlayerData getBestStatistics(String gamemode) {
+        return this.prepareStatement(
+                "SELECT * FROM stats WHERE gamemode = ? ORDER BY rank LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asPlayerData(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
+    public PlayerData getWorstStatistics(String gamemode) {
+        return this.prepareStatement(
+                "SELECT * FROM stats WHERE gamemode = ? ORDER BY rank DESC LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asPlayerData(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
     public Collection<PlayerData> getStatistics() {
         return this.getStatistics(-1);
     }
 
     public Collection<PlayerData> getStatistics(int maxCount) {
         return this.prepareStatement(
-                maxCount > -1 ? "SELECT * FROM stats LIMIT " + maxCount : "SELECT * FROM stats",
+                maxCount > -1 ? "SELECT * FROM stats ORDER BY rank LIMIT " + maxCount : "SELECT * FROM stats",
                 preparedStatement -> {
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
                         Collection<PlayerData> data = new ArrayList<>();
@@ -154,6 +184,9 @@ public class DatabaseProvider {
     }
 
     public void updateStatistics(PlayerData statistics) {
+        if (statistics.getRank() <= 0)
+            return;
+
         boolean exists = this.prepareStatement(
                 "SELECT * FROM stats WHERE name = ? AND gamemode = ?",
                 preparedStatement -> {
@@ -166,27 +199,29 @@ public class DatabaseProvider {
         );
         if (exists) {
             this.prepareStatement(
-                    "UPDATE stats SET timestamp = ?, stats = ?, lastMatchId = ? WHERE name = ? AND gamemode = ?",
+                    "UPDATE stats SET timestamp = ?, stats = ?, lastMatchId = ?, rank = ? WHERE name = ? AND gamemode = ?",
                     preparedStatement -> {
                         preparedStatement.setLong(1, statistics.getTimestamp());
                         preparedStatement.setString(2, this.gson.toJson(statistics.getStats()));
                         preparedStatement.setString(3, statistics.getLastMatchId());
-                        preparedStatement.setString(4, statistics.getName());
-                        preparedStatement.setString(5, statistics.getGamemode());
+                        preparedStatement.setLong(4, statistics.getRank());
+                        preparedStatement.setString(5, statistics.getName());
+                        preparedStatement.setString(6, statistics.getGamemode());
 
                         return preparedStatement.executeUpdate();
                     }
             );
         } else {
             this.prepareStatement(
-                    "INSERT INTO stats (uniqueId, name, gamemode, stats, timestamp, lastMatchId) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO stats (uniqueId, rank, name, gamemode, stats, timestamp, lastMatchId) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     preparedStatement -> {
                         preparedStatement.setBytes(1, statistics.getUniqueId() != null ? this.convertUUIDToBytes(statistics.getUniqueId()) : null);
-                        preparedStatement.setString(2, statistics.getName());
-                        preparedStatement.setString(3, statistics.getGamemode());
-                        preparedStatement.setString(4, this.gson.toJson(statistics.getStats()));
-                        preparedStatement.setLong(5, statistics.getTimestamp());
-                        preparedStatement.setString(6, statistics.getLastMatchId());
+                        preparedStatement.setLong(2, statistics.getRank());
+                        preparedStatement.setString(3, statistics.getName());
+                        preparedStatement.setString(4, statistics.getGamemode());
+                        preparedStatement.setString(5, this.gson.toJson(statistics.getStats()));
+                        preparedStatement.setLong(6, statistics.getTimestamp());
+                        preparedStatement.setString(7, statistics.getLastMatchId());
                         return preparedStatement.executeUpdate();
                     }
             );
@@ -230,6 +265,19 @@ public class DatabaseProvider {
         return this.prepareStatement(
                 "SELECT COUNT(*) FROM stats",
                 preparedStatement -> {
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        return resultSet.next() ? resultSet.getInt(1) : 0;
+                    }
+                },
+                0
+        );
+    }
+
+    public int countAvailableStatistics(String gamemode) {
+        return this.prepareStatement(
+                "SELECT COUNT(*) FROM stats WHERE gamemode = ?",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
                         return resultSet.next() ? resultSet.getInt(1) : 0;
                     }
@@ -306,6 +354,7 @@ public class DatabaseProvider {
                 this.gson.fromJson(resultSet.getString("winners"), STRING_COLLECTION_TYPE),
                 this.gson.fromJson(resultSet.getString("beginPlayers"), STRING_COLLECTION_TYPE),
                 this.gson.fromJson(resultSet.getString("endPlayers"), STRING_COLLECTION_TYPE),
+                null,
                 null
         );
     }
@@ -324,10 +373,99 @@ public class DatabaseProvider {
         );
     }
 
+    public Match getFastestMatch(String gamemode) {
+        return this.prepareStatement(
+                "SELECT * FROM matches WHERE gamemode = ? ORDER BY (endTimestamp - beginTimestamp) LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asMatch(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
+    public Match getFastestMatch(String gamemode, String winner) {
+        return this.prepareStatement(
+                "SELECT * FROM matches WHERE gamemode = ? AND winners LIKE '%' || ? || '%' ORDER BY (endTimestamp - beginTimestamp) LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    preparedStatement.setString(2, winner);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asMatch(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
+    public Match getSlowestMatch(String gamemode) {
+        return this.prepareStatement(
+                "SELECT * FROM matches WHERE gamemode = ? ORDER BY (endTimestamp - beginTimestamp) DESC LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asMatch(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
+    public Match getSlowestMatch(String gamemode, String winner) {
+        return this.prepareStatement(
+                "SELECT * FROM matches WHERE gamemode = ? AND winners LIKE '%' || ? || '%' ORDER BY (endTimestamp - beginTimestamp) DESC LIMIT 1",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    preparedStatement.setString(2, winner);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            return this.asMatch(resultSet);
+                        }
+                    }
+                    return null;
+                }
+        );
+    }
+
     public int countMatches() {
         return this.prepareStatement(
                 "SELECT COUNT(*) FROM matches",
                 preparedStatement -> {
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        return resultSet.next() ? resultSet.getInt(1) : 0;
+                    }
+                },
+                0
+        );
+    }
+
+    public int countMatches(String gamemode) {
+        return this.prepareStatement(
+                "SELECT COUNT(*) FROM matches WHERE gamemode = ?",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        return resultSet.next() ? resultSet.getInt(1) : 0;
+                    }
+                },
+                0
+        );
+    }
+
+    public int countMatches(String gamemode, String map) {
+        return this.prepareStatement(
+                "SELECT COUNT(*) FROM matches WHERE gamemode = ? AND map = ?",
+                preparedStatement -> {
+                    preparedStatement.setString(1, gamemode);
+                    preparedStatement.setString(2, map);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
                         return resultSet.next() ? resultSet.getInt(1) : 0;
                     }

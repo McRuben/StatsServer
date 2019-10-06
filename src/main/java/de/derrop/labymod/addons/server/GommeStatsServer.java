@@ -4,16 +4,28 @@ package de.derrop.labymod.addons.server;
  */
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import de.derrop.labymod.addons.server.command.CommandMap;
+import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandHelp;
+import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandMatch;
+import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandStats;
+import de.derrop.labymod.addons.server.config.GeneralConfiguration;
 import de.derrop.labymod.addons.server.database.DatabaseProvider;
+import de.derrop.labymod.addons.server.discord.DiscordBot;
 import de.derrop.labymod.addons.server.sync.SyncPlayer;
 import de.derrop.labymod.addons.server.sync.SyncServer;
 import de.derrop.labymod.addons.server.sync.handler.MatchBeginHandler;
 import de.derrop.labymod.addons.server.sync.handler.MatchEndHandler;
 import de.derrop.labymod.addons.server.sync.handler.MatchPlayerRemoveHandler;
 import de.derrop.labymod.addons.server.sync.handler.PlayerStatisticsUpdateHandler;
+import de.derrop.labymod.addons.server.textures.MinecraftTextureManager;
 import io.javalin.Javalin;
 
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static io.javalin.apibuilder.ApiBuilder.get;
@@ -29,20 +41,63 @@ public class GommeStatsServer {
 
     private Map<String, Match> runningMatches = new HashMap<>();
 
+    private CommandMap commandMap = new CommandMap();
+
+    private DiscordBot discordBot = new DiscordBot(this);
+
+    private GeneralConfiguration configuration;
+
+    private MinecraftTextureManager textureManager = new MinecraftTextureManager();
+
     public static void main(String[] args) {
         GommeStatsServer statsServer = new GommeStatsServer();
-        statsServer.init();
+
+        GeneralConfiguration configuration = new GeneralConfiguration();
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+
+        Path path = Paths.get("config.json");
+        if (Files.exists(path)) {
+            try (Reader reader = new InputStreamReader(Files.newInputStream(path))) {
+                configuration = gson.fromJson(reader, GeneralConfiguration.class);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try (Writer writer = new OutputStreamWriter(Files.newOutputStream(path))) {
+                gson.toJson(configuration, writer);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        statsServer.init(configuration);
     }
 
-    public void init() {
+    public void init(GeneralConfiguration configuration) {
+        this.configuration = configuration;
+
         this.databaseProvider.init();
+
+        this.commandMap.registerCommand(new ConsoleCommandHelp(this.commandMap));
+
+        this.commandMap.registerCommand(new ConsoleCommandStats(this));
+        this.commandMap.registerCommand(new ConsoleCommandMatch(this));
 
         this.initWeb();
         this.initStatsServer();
+
+        this.discordBot.init(configuration.getDiscordConfiguration());
+    }
+
+    public void shutdown() {
+        this.discordBot.close();
+        this.webServer.stop();
+        this.syncServer.close();
     }
 
     private void initStatsServer() {
-        this.syncServer.init(new InetSocketAddress("192.168.178.47", 1510)); //todo config
+        this.syncServer.init(new InetSocketAddress(this.configuration.getMinecraftPort()));
 
         this.syncServer.registerHandler((short) 1, new MatchBeginHandler(this));
         this.syncServer.registerHandler((short) 2, new MatchEndHandler(this));
@@ -51,7 +106,7 @@ public class GommeStatsServer {
     }
 
     private void initWeb() {
-        this.webServer = Javalin.create().start(2410); //todo config
+        this.webServer = Javalin.create().start(this.configuration.getWebPort());
         this.webServer.routes(() -> {
             path("/api", () -> {
                 path("/matches", () -> {
@@ -74,8 +129,22 @@ public class GommeStatsServer {
                     get("/count", context -> context.result(String.valueOf(this.databaseProvider.countAvailableStatistics())));
                     get("/player/:name", context -> context.result(this.gson.toJson(this.databaseProvider.getStatistics(context.pathParam("name")))));
                 });
+                path("/textures", () -> {
+                    get("/:texture", context -> {
+                        byte[] image = this.textureManager.getMinecraftTexture(context.pathParam("texture").replace(".", "/"));
+                        if (image != null) {
+                            context.contentType("image/png").result(new ByteArrayInputStream(image));
+                        } else {
+                            context.status(404).result("Not found");
+                        }
+                    });
+                });
             });
         });
+    }
+
+    public CommandMap getCommandMap() {
+        return commandMap;
     }
 
     public Gson getGson() {
@@ -106,7 +175,7 @@ public class GommeStatsServer {
         this.databaseProvider.insertMatch(match);
     }
 
-    public void startMatch(SyncPlayer player, String gamemode, String map, String serverId, Collection<String> players) {
+    public void startMatch(SyncPlayer player, String gamemode, String map, String serverId, String minecraftTexturePath, Collection<String> players) {
         Match match;
         if (this.runningMatches.containsKey(serverId)) {
             match = this.runningMatches.get(serverId);
@@ -123,6 +192,7 @@ public class GommeStatsServer {
                     null,
                     players,
                     new ArrayList<>(players),
+                    minecraftTexturePath,
                     new HashSet<>(Collections.singletonList(player.getName()))
             );
             this.runningMatches.put(serverId, match);
@@ -133,6 +203,8 @@ public class GommeStatsServer {
                     playerData.setLastMatchId(match.getServerId());
                 }
             }
+
+            this.discordBot.handleMatchBegin(match);
         }
         player.setCurrentMatch(match);
     }
@@ -150,6 +222,8 @@ public class GommeStatsServer {
                 match.setEndTimestamp(System.currentTimeMillis());
                 this.runningMatches.remove(serverId);
                 this.databaseProvider.insertMatch(match);
+
+                this.discordBot.handleMatchEnd(match);
             }
         }
     }

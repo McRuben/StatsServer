@@ -23,6 +23,7 @@ public class Match {
     private Collection<String> winners;
     private Collection<String> beginPlayers;
     private Collection<String> endPlayers;
+    private transient String minecraftTexturePath;
     private transient Collection<String> temporaryPlayers;
 
 }
