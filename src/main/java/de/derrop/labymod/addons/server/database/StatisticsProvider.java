@@ -25,7 +25,7 @@ public class StatisticsProvider {
 
     public Collection<PlayerData> getStatistics(String name) {
         return this.databaseProvider.prepareStatement(
-                "SELECT * FROM stats WHERE name = ?",
+                "SELECT * FROM stats WHERE lower(name) = lower(?)",
                 preparedStatement -> {
                     preparedStatement.setString(1, name);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -41,7 +41,7 @@ public class StatisticsProvider {
 
     public PlayerData getStatistics(String name, String gamemode) {
         return this.databaseProvider.prepareStatement(
-                "SELECT * FROM stats WHERE name = ? AND gamemode = ?",
+                "SELECT * FROM stats WHERE lower(name) = lower(?) AND gamemode = ?",
                 preparedStatement -> {
                     preparedStatement.setString(1, name);
                     preparedStatement.setString(2, gamemode);
@@ -147,7 +147,7 @@ public class StatisticsProvider {
             return;
 
         boolean exists = this.databaseProvider.prepareStatement(
-                "SELECT * FROM stats WHERE name = ? AND gamemode = ?",
+                "SELECT * FROM stats WHERE lower(name) = lower(?) AND gamemode = ?",
                 preparedStatement -> {
                     preparedStatement.setString(1, statistics.getName());
                     preparedStatement.setString(2, statistics.getGamemode());
