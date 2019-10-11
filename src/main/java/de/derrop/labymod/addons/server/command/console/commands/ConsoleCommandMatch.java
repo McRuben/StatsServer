@@ -37,18 +37,19 @@ public class ConsoleCommandMatch extends Command {
             return;
         }
 
+        String gamemode = args[0].toUpperCase();
         if (args.length == 2 && args[1].equalsIgnoreCase("fastest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(args[0]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(gamemode));
         } else if (args.length == 3 && args[1].equalsIgnoreCase("fastest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(args[0], args[2]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(gamemode, args[2]));
         } else if (args.length == 2 && args[1].equalsIgnoreCase("slowest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(args[0]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(gamemode));
         } else if (args.length == 3 && args[1].equalsIgnoreCase("slowest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(args[0], args[2]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(gamemode, args[2]));
         } else if (args.length == 3 && args[2].equalsIgnoreCase("count")) {
-            sender.sendMessage("Matches played in " + args[0] + " on the map " + args[1] + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(args[0], args[1]));
+            sender.sendMessage("Matches played in " + gamemode + " on the map " + args[1] + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(gamemode, args[1]));
         } else if (args.length == 2 && args[1].equalsIgnoreCase("count")) {
-            sender.sendMessage("Matches played in " + args[0] + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(args[0]));
+            sender.sendMessage("Matches played in " + gamemode + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(gamemode));
         }
     }
 
