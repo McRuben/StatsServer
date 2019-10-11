@@ -38,17 +38,17 @@ public class ConsoleCommandMatch extends Command {
         }
 
         if (args.length == 2 && args[1].equalsIgnoreCase("fastest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getFastestMatch(args[0]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(args[0]));
         } else if (args.length == 3 && args[1].equalsIgnoreCase("fastest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getFastestMatch(args[0], args[2]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getFastestMatch(args[0], args[2]));
         } else if (args.length == 2 && args[1].equalsIgnoreCase("slowest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getSlowestMatch(args[0]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(args[0]));
         } else if (args.length == 3 && args[1].equalsIgnoreCase("slowest")) {
-            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getSlowestMatch(args[0], args[2]));
+            this.displayMatch(sender, this.statsServer.getDatabaseProvider().getMatchProvider().getSlowestMatch(args[0], args[2]));
         } else if (args.length == 3 && args[2].equalsIgnoreCase("count")) {
-            sender.sendMessage("Matches played in " + args[0] + " on the map " + args[1] + ": " + this.statsServer.getDatabaseProvider().countMatches(args[0], args[1]));
+            sender.sendMessage("Matches played in " + args[0] + " on the map " + args[1] + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(args[0], args[1]));
         } else if (args.length == 2 && args[1].equalsIgnoreCase("count")) {
-            sender.sendMessage("Matches played in " + args[0] + ": " + this.statsServer.getDatabaseProvider().countMatches(args[0]));
+            sender.sendMessage("Matches played in " + args[0] + ": " + this.statsServer.getDatabaseProvider().getMatchProvider().countMatches(args[0]));
         }
     }
 

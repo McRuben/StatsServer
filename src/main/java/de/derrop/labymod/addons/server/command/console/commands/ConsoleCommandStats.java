@@ -39,13 +39,13 @@ public class ConsoleCommandStats extends Command {
         String gamemode = args[0].toUpperCase();
 
         if (args[1].equalsIgnoreCase("count")) {
-            sender.sendMessage("Statistics saved in our database for gamemode " + gamemode + ": " + this.statsServer.getDatabaseProvider().countAvailableStatistics(gamemode));
+            sender.sendMessage("Statistics saved in our database for gamemode " + gamemode + ": " + this.statsServer.getDatabaseProvider().getStatisticsProvider().countAvailableStatistics(gamemode));
         } else if (args[1].equalsIgnoreCase("best")) {
-            this.displayStats(sender, this.statsServer.getDatabaseProvider().getBestStatistics(gamemode));
+            this.displayStats(sender, this.statsServer.getDatabaseProvider().getStatisticsProvider().getBestStatistics(gamemode));
         } else if (args[1].equalsIgnoreCase("worst")) {
-            this.displayStats(sender, this.statsServer.getDatabaseProvider().getWorstStatistics(gamemode));
+            this.displayStats(sender, this.statsServer.getDatabaseProvider().getStatisticsProvider().getWorstStatistics(gamemode));
         } else {
-            this.displayStats(sender, this.statsServer.getDatabaseProvider().getStatistics(args[1], gamemode));
+            this.displayStats(sender, this.statsServer.getDatabaseProvider().getStatisticsProvider().getStatistics(args[1], gamemode));
         }
     }
 

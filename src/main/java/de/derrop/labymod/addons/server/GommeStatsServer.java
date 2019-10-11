@@ -9,15 +9,14 @@ import de.derrop.labymod.addons.server.command.CommandMap;
 import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandHelp;
 import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandMatch;
 import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandStats;
+import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandTag;
 import de.derrop.labymod.addons.server.config.GeneralConfiguration;
 import de.derrop.labymod.addons.server.database.DatabaseProvider;
+import de.derrop.labymod.addons.server.database.TagType;
 import de.derrop.labymod.addons.server.discord.DiscordBot;
 import de.derrop.labymod.addons.server.sync.SyncPlayer;
 import de.derrop.labymod.addons.server.sync.SyncServer;
-import de.derrop.labymod.addons.server.sync.handler.MatchBeginHandler;
-import de.derrop.labymod.addons.server.sync.handler.MatchEndHandler;
-import de.derrop.labymod.addons.server.sync.handler.MatchPlayerRemoveHandler;
-import de.derrop.labymod.addons.server.sync.handler.PlayerStatisticsUpdateHandler;
+import de.derrop.labymod.addons.server.sync.handler.*;
 import de.derrop.labymod.addons.server.textures.MinecraftTextureManager;
 import io.javalin.Javalin;
 
@@ -84,6 +83,9 @@ public class GommeStatsServer {
         this.commandMap.registerCommand(new ConsoleCommandStats(this));
         this.commandMap.registerCommand(new ConsoleCommandMatch(this));
 
+        this.commandMap.registerCommand(new ConsoleCommandTag(this, TagType.CLAN, "ctag", "clantag", "clan-tag"));
+        this.commandMap.registerCommand(new ConsoleCommandTag(this, TagType.PLAYER, "utag", "usertag", "user-tag"));
+
         this.initWeb();
         this.initStatsServer();
 
@@ -103,6 +105,7 @@ public class GommeStatsServer {
         this.syncServer.registerHandler((short) 2, new MatchEndHandler(this));
         this.syncServer.registerHandler((short) 3, new MatchPlayerRemoveHandler());
         this.syncServer.registerHandler((short) 4, new PlayerStatisticsUpdateHandler(this));
+        this.syncServer.registerHandler((short) 5, new TagHandler(this));
     }
 
     private void initWeb() {
@@ -110,24 +113,24 @@ public class GommeStatsServer {
         this.webServer.routes(() -> {
             path("/api", () -> {
                 path("/matches", () -> {
-                    get("/list", context -> context.result(this.gson.toJson(this.databaseProvider.getMatches())));
-                    get("/list/:gamemode", context -> context.result(this.gson.toJson(this.databaseProvider.getMatches(context.pathParam("gamemode")))));
+                    get("/list", context -> context.result(this.gson.toJson(this.databaseProvider.getMatchProvider().getMatches())));
+                    get("/list/:gamemode", context -> context.result(this.gson.toJson(this.databaseProvider.getMatchProvider().getMatches(context.pathParam("gamemode")))));
                     get("/list/limit/:limit", context -> {
                         try {
-                            context.result(this.gson.toJson(this.databaseProvider.getLastMatches(Integer.parseInt(context.pathParam("limit")))));
+                            context.result(this.gson.toJson(this.databaseProvider.getMatchProvider().getLastMatches(Integer.parseInt(context.pathParam("limit")))));
                         } catch (NumberFormatException exception) {
                             context.result("null");
                         }
                     });
-                    get("/count", context -> context.result(this.gson.toJson(this.databaseProvider.countMatches())));
+                    get("/count", context -> context.result(this.gson.toJson(this.databaseProvider.getMatchProvider().countMatches())));
                     get("/running", context -> context.result(this.gson.toJson(this.runningMatches.values())));
                 });
                 path("/statistics", () -> {
-                    get("/list", context -> context.result(this.gson.toJson(this.databaseProvider.getStatistics())));
-                    get("/list/:gamemode", context -> context.result(this.gson.toJson(this.databaseProvider.getStatisticsOfGameMode(context.pathParam("gamemode")))));
-                    get("/list/limit/:limit", context -> context.result(this.gson.toJson(this.databaseProvider.getStatistics(Integer.parseInt(context.pathParam("limit"))))));
-                    get("/count", context -> context.result(String.valueOf(this.databaseProvider.countAvailableStatistics())));
-                    get("/player/:name", context -> context.result(this.gson.toJson(this.databaseProvider.getStatistics(context.pathParam("name")))));
+                    get("/list", context -> context.result(this.gson.toJson(this.databaseProvider.getStatisticsProvider().getStatistics())));
+                    get("/list/:gamemode", context -> context.result(this.gson.toJson(this.databaseProvider.getStatisticsProvider().getStatisticsOfGameMode(context.pathParam("gamemode")))));
+                    get("/list/limit/:limit", context -> context.result(this.gson.toJson(this.databaseProvider.getStatisticsProvider().getStatistics(Integer.parseInt(context.pathParam("limit"))))));
+                    get("/count", context -> context.result(String.valueOf(this.databaseProvider.getStatisticsProvider().countAvailableStatistics())));
+                    get("/player/:name", context -> context.result(this.gson.toJson(this.databaseProvider.getStatisticsProvider().getStatistics(context.pathParam("name")))));
                 });
                 path("/textures", () -> {
                     get("/:texture", context -> {
@@ -172,7 +175,7 @@ public class GommeStatsServer {
         match.setFinished(false);
         match.setEndTimestamp(System.currentTimeMillis());
         this.runningMatches.remove(match.getServerId());
-        this.databaseProvider.insertMatch(match);
+        this.databaseProvider.getMatchProvider().insertMatch(match);
     }
 
     public void startMatch(SyncPlayer player, String gamemode, String map, String serverId, String minecraftTexturePath, Collection<String> players) {
@@ -198,7 +201,7 @@ public class GommeStatsServer {
             this.runningMatches.put(serverId, match);
 
             for (String name : players) {
-                PlayerData playerData = this.databaseProvider.getStatistics(name, gamemode);
+                PlayerData playerData = this.databaseProvider.getStatisticsProvider().getStatistics(name, gamemode);
                 if (playerData != null) {
                     playerData.setLastMatchId(match.getServerId());
                 }
@@ -221,7 +224,7 @@ public class GommeStatsServer {
                 }
                 match.setEndTimestamp(System.currentTimeMillis());
                 this.runningMatches.remove(serverId);
-                this.databaseProvider.insertMatch(match);
+                this.databaseProvider.getMatchProvider().insertMatch(match);
 
                 this.discordBot.handleMatchEnd(match);
             }

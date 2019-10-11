@@ -24,11 +24,11 @@ public class PlayerStatisticsUpdateHandler implements PacketHandler {
         PlayerData newPlayerData = this.statsServer.getGson().fromJson(payload, PlayerData.class);
         if (newPlayerData != null) {
             newPlayerData.setTimestamp(System.currentTimeMillis());
-            PlayerData oldPlayerData = this.statsServer.getDatabaseProvider().getStatistics(newPlayerData.getName(), newPlayerData.getGamemode());
+            PlayerData oldPlayerData = this.statsServer.getDatabaseProvider().getStatisticsProvider().getStatistics(newPlayerData.getName(), newPlayerData.getGamemode());
             if (oldPlayerData != null) {
                 newPlayerData.setLastMatchId(oldPlayerData.getLastMatchId());
             }
-            this.statsServer.getDatabaseProvider().updateStatistics(newPlayerData);
+            this.statsServer.getDatabaseProvider().getStatisticsProvider().updateStatistics(newPlayerData);
         }
     }
 }
