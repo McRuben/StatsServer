@@ -4,6 +4,7 @@ package de.derrop.labymod.addons.server.database;
  */
 
 import de.derrop.labymod.addons.server.PlayerData;
+import de.derrop.labymod.addons.server.util.Utility;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -57,7 +58,7 @@ public class StatisticsProvider {
 
     public PlayerData getBestStatistics(String gamemode) {
         return this.databaseProvider.prepareStatement(
-                "SELECT * FROM stats WHERE gamemode = ? ORDER BY rank LIMIT 1",
+                "SELECT * FROM stats WHERE gamemode = ? AND rank > 0 ORDER BY rank LIMIT 1",
                 preparedStatement -> {
                     preparedStatement.setString(1, gamemode);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -72,7 +73,7 @@ public class StatisticsProvider {
 
     public PlayerData getWorstStatistics(String gamemode) {
         return this.databaseProvider.prepareStatement(
-                "SELECT * FROM stats WHERE gamemode = ? ORDER BY rank DESC LIMIT 1",
+                "SELECT * FROM stats WHERE gamemode = ? AND rank > 0 ORDER BY rank DESC LIMIT 1",
                 preparedStatement -> {
                     preparedStatement.setString(1, gamemode);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -174,7 +175,7 @@ public class StatisticsProvider {
             this.databaseProvider.prepareStatement(
                     "INSERT INTO stats (uniqueId, rank, name, gamemode, stats, timestamp, lastMatchId) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     preparedStatement -> {
-                        preparedStatement.setBytes(1, statistics.getUniqueId() != null ? this.databaseProvider.convertUUIDToBytes(statistics.getUniqueId()) : null);
+                        preparedStatement.setBytes(1, statistics.getUniqueId() != null ? Utility.convertUUIDToBytes(statistics.getUniqueId()) : null);
                         preparedStatement.setLong(2, statistics.getRank());
                         preparedStatement.setString(3, statistics.getName());
                         preparedStatement.setString(4, statistics.getGamemode());
@@ -197,7 +198,7 @@ public class StatisticsProvider {
 
     private PlayerData asPlayerData(ResultSet resultSet) throws SQLException {
         return new PlayerData(
-                this.databaseProvider.convertBytesToUUID(resultSet.getBytes("uniqueId")),
+                Utility.convertBytesToUUID(resultSet.getBytes("uniqueId")),
                 resultSet.getString("name"),
                 resultSet.getString("gamemode"),
                 this.databaseProvider.gson.fromJson(resultSet.getString("stats"), STRING_MAP_TYPE),

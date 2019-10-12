@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
@@ -40,6 +42,8 @@ public class SyncServer implements Closeable {
     private Map<UUID, SyncPlayer> connectedPlayers = new HashMap<>();
     private Map<Short, Collection<PacketHandler>> packetHandlers = new HashMap<>();
     private Map<Short, CompletableFuture<JsonElement>> pendingQueries = new HashMap<>();
+
+    private ExecutorService executorService = Executors.newCachedThreadPool();
 
     public SyncServer(GommeStatsServer statsServer) {
         this.statsServer = statsServer;
@@ -92,6 +96,7 @@ public class SyncServer implements Closeable {
         if (this.channel != null) {
             this.channel.close().syncUninterruptibly();
         }
+        this.executorService.shutdownNow();
     }
 
     private final class PacketReader extends SimpleChannelInboundHandler<String> {
@@ -104,63 +109,114 @@ public class SyncServer implements Closeable {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, String message) throws Exception {
-            System.out.println("Parsing json " + message);
-            JsonObject jsonObject = SyncServer.this.jsonParser.parse(message).getAsJsonObject();
-            JsonElement payload = jsonObject.get("payload");
+            SyncServer.this.executorService.execute(() -> {
+                System.out.println("Parsing json " + message);
+                JsonObject jsonObject = SyncServer.this.jsonParser.parse(message).getAsJsonObject();
+                JsonElement payload = jsonObject.get("payload");
 
-            Consumer<JsonElement> responseConsumer = null;
-            if (jsonObject.has("queryId")) {
-                short queryId = jsonObject.get("queryId").getAsShort();
-                if (SyncServer.this.pendingQueries.containsKey(queryId)) {
-                    SyncServer.this.pendingQueries.remove(queryId).complete(payload);
+                Consumer<JsonElement> responseConsumer = null;
+                if (jsonObject.has("queryId")) {
+                    short queryId = jsonObject.get("queryId").getAsShort();
+                    if (SyncServer.this.pendingQueries.containsKey(queryId)) {
+                        SyncServer.this.pendingQueries.remove(queryId).complete(payload);
+                        return;
+                    }
+                    responseConsumer = element -> {
+                        JsonObject response = new JsonObject();
+                        response.addProperty("queryId", queryId);
+                        response.add("payload", element);
+                        ctx.channel().writeAndFlush(response.toString()).syncUninterruptibly();
+                    };
+                }
+
+                if (!jsonObject.has("id")) {
                     return;
                 }
-                responseConsumer = element -> {
-                    JsonObject response = new JsonObject();
-                    response.addProperty("queryId", queryId);
-                    response.add("payload", element);
-                    ctx.channel().writeAndFlush(response.toString());
-                };
-            }
+                short id = jsonObject.get("id").getAsShort();
 
-            if (!jsonObject.has("id")) {
-                return;
-            }
-            short id = jsonObject.get("id").getAsShort();
+                if (!this.authorized) {
+                    if (!payload.isJsonObject()) {
+                        if (responseConsumer != null) {
+                            JsonObject response = new JsonObject();
+                            response.addProperty("success", false);
+                            response.addProperty("error", "No JsonObject");
+                            responseConsumer.accept(response);
+                        }
+                        ctx.channel().close();
+                        return;
+                    }
+                    JsonObject authData = payload.getAsJsonObject();
+                    if (!authData.has("uniqueId") || !authData.has("name") || !authData.has("token")) {
+                        if (responseConsumer != null) {
+                            JsonObject response = new JsonObject();
+                            response.addProperty("success", false);
+                            response.addProperty("error", "Missing uuid, name or token");
+                            responseConsumer.accept(response);
+                        }
+                        ctx.channel().close();
+                        return;
+                    }
 
-            if (!this.authorized) {
-                if (!payload.isJsonObject()) {
-                    ctx.channel().close();
+                    UUID uniqueId;
+                    try {
+                        uniqueId = UUID.fromString(authData.get("uniqueId").getAsString());
+                    } catch (IllegalArgumentException exception) {
+                        if (responseConsumer != null) {
+                            JsonObject response = new JsonObject();
+                            response.addProperty("success", false);
+                            response.addProperty("error", "Invalid uuid");
+                            responseConsumer.accept(response);
+                        }
+                        ctx.channel().close();
+                        return;
+                    }
+                    String name = authData.get("name").getAsString();
+                    String token = authData.get("token").getAsString();
+
+                    if (SyncServer.this.connectedPlayers.containsKey(uniqueId)) {
+                        if (responseConsumer != null) {
+                            JsonObject response = new JsonObject();
+                            response.addProperty("success", false);
+                            response.addProperty("error", "Already connected");
+                            responseConsumer.accept(response);
+                        }
+                        ctx.channel().close();
+                        return;
+                    }
+
+                    if (token == null || !SyncServer.this.statsServer.getDatabaseProvider().getUserAuthenticator().authUser(token, uniqueId)) {
+                        if (responseConsumer != null) {
+                            JsonObject response = new JsonObject();
+                            response.addProperty("success", false);
+                            response.addProperty("error", "Invalid token");
+                            responseConsumer.accept(response);
+                        }
+                        ctx.channel().close();
+                        return;
+                    }
+
+                    this.syncPlayer.setUniqueId(uniqueId);
+                    this.syncPlayer.setName(name);
+
+                    SyncServer.this.connectedPlayers.put(this.syncPlayer.getUniqueId(), this.syncPlayer);
+
+                    this.authorized = true;
+                    if (responseConsumer != null) {
+                        JsonObject response = new JsonObject();
+                        response.addProperty("success", true);
+                        responseConsumer.accept(response);
+                    }
+                    System.out.println("Authorized player " + this.syncPlayer.getUniqueId() + "#" + this.syncPlayer.getName() + "@" + this.syncPlayer.getChannel().remoteAddress());
                     return;
                 }
-                JsonObject authData = payload.getAsJsonObject();
-                if (!authData.has("uniqueId") || !authData.has("name")) {
-                    ctx.channel().close();
-                    return;
-                }
 
-                this.syncPlayer.setUniqueId(UUID.fromString(authData.get("uniqueId").getAsString()));
-                this.syncPlayer.setName(authData.get("name").getAsString());
-                if (SyncServer.this.connectedPlayers.containsKey(this.syncPlayer.getUniqueId())) {
-                    ctx.channel().close();
-                    return;
+                Collection<PacketHandler> packetHandlers = SyncServer.this.packetHandlers.get(id);
+                if (packetHandlers != null && !packetHandlers.isEmpty()) {
+                    for (PacketHandler packetHandler : packetHandlers) {
+                        packetHandler.handlePacket(this.syncPlayer, payload, responseConsumer);
+                    }
                 }
-                SyncServer.this.connectedPlayers.put(this.syncPlayer.getUniqueId(), this.syncPlayer);
-
-                this.authorized = true;
-                if (responseConsumer != null) {
-                    responseConsumer.accept(new JsonPrimitive(true));
-                }
-                System.out.println("Authorized player " + this.syncPlayer.getUniqueId() + "#" + this.syncPlayer.getName() + "@" + this.syncPlayer.getChannel().remoteAddress());
-                return;
-            }
-
-            Collection<PacketHandler> packetHandlers = SyncServer.this.packetHandlers.get(id);
-            if (packetHandlers != null && !packetHandlers.isEmpty()) {
-                for (PacketHandler packetHandler : packetHandlers) {
-                    packetHandler.handlePacket(this.syncPlayer, payload, responseConsumer);
-                }
-            }
+            });
         }
 
         @Override

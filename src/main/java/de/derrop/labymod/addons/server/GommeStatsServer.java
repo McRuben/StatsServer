@@ -6,10 +6,7 @@ package de.derrop.labymod.addons.server;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import de.derrop.labymod.addons.server.command.CommandMap;
-import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandHelp;
-import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandMatch;
-import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandStats;
-import de.derrop.labymod.addons.server.command.console.commands.ConsoleCommandTag;
+import de.derrop.labymod.addons.server.command.console.commands.*;
 import de.derrop.labymod.addons.server.config.GeneralConfiguration;
 import de.derrop.labymod.addons.server.database.DatabaseProvider;
 import de.derrop.labymod.addons.server.database.TagType;
@@ -78,13 +75,14 @@ public class GommeStatsServer {
 
         this.databaseProvider.init();
 
-        this.commandMap.registerCommand(new ConsoleCommandHelp(this.commandMap));
+        this.commandMap.registerCommand(new CommandHelp(this.commandMap));
 
-        this.commandMap.registerCommand(new ConsoleCommandStats(this));
-        this.commandMap.registerCommand(new ConsoleCommandMatch(this));
+        this.commandMap.registerCommand(new CommandStats(this));
+        this.commandMap.registerCommand(new CommandMatch(this));
+        this.commandMap.registerCommand(new CommandUser(this));
 
-        this.commandMap.registerCommand(new ConsoleCommandTag(this, TagType.CLAN, "ctag", "clantag", "clan-tag"));
-        this.commandMap.registerCommand(new ConsoleCommandTag(this, TagType.PLAYER, "utag", "usertag", "user-tag"));
+        this.commandMap.registerCommand(new CommandTag(this, TagType.CLAN, "ctag", "clantag", "clan-tag"));
+        this.commandMap.registerCommand(new CommandTag(this, TagType.PLAYER, "utag", "usertag", "user-tag"));
 
         this.initWeb();
         this.initStatsServer();

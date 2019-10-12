@@ -30,6 +30,7 @@ public class DatabaseProvider {
     private StatisticsProvider statisticsProvider = new StatisticsProvider(this);
     private MatchProvider matchProvider = new MatchProvider(this);
     private TagProvider tagProvider = new TagProvider(this);
+    private UserAuthenticator userAuthenticator = new UserAuthenticator(this);
 
     public void init() {
         try {
@@ -46,6 +47,10 @@ public class DatabaseProvider {
             );
             this.prepareStatement(
                     "CREATE TABLE IF NOT EXISTS tags(type VARCHAR(16), name VARCHAR(64), tag TEXT)",
+                    PreparedStatement::executeUpdate
+            );
+            this.prepareStatement(
+                    "CREATE TABLE IF NOT EXISTS auth(token VARCHAR(64), uniqueId BINARY(16), registrationTime LONG)",
                     PreparedStatement::executeUpdate
             );
         } catch (SQLException | ClassNotFoundException e) {
@@ -68,20 +73,6 @@ public class DatabaseProvider {
         return def;
     }
 
-    UUID convertBytesToUUID(byte[] bytes) {
-        if (bytes != null) {
-            ByteBuffer buffer = ByteBuffer.wrap(bytes);
-            return new UUID(buffer.getLong(), buffer.getLong());
-        }
-        return null;
-    }
-
-    byte[] convertUUIDToBytes(UUID uuid) {
-        return uuid != null ?
-                ByteBuffer.wrap(new byte[16]).putLong(uuid.getMostSignificantBits()).putLong(uuid.getLeastSignificantBits()).array() :
-                null;
-    }
-
     public MatchProvider getMatchProvider() {
         return matchProvider;
     }
@@ -92,5 +83,9 @@ public class DatabaseProvider {
 
     public TagProvider getTagProvider() {
         return tagProvider;
+    }
+
+    public UserAuthenticator getUserAuthenticator() {
+        return userAuthenticator;
     }
 }

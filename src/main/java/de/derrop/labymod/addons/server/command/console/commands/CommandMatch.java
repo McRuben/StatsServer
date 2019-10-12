@@ -14,13 +14,13 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class ConsoleCommandMatch extends Command {
+public class CommandMatch extends Command {
 
     private GommeStatsServer statsServer;
 
     private DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
-    public ConsoleCommandMatch(GommeStatsServer statsServer) {
+    public CommandMatch(GommeStatsServer statsServer) {
         super("match");
         this.statsServer = statsServer;
     }

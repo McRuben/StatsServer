@@ -11,11 +11,11 @@ import de.derrop.labymod.addons.server.database.TagType;
 import java.util.Arrays;
 import java.util.Collection;
 
-public class ConsoleCommandTag extends Command {
+public class CommandTag extends Command {
     private GommeStatsServer statsServer;
     private TagType tagType;
 
-    public ConsoleCommandTag(GommeStatsServer statsServer, TagType tagType, String... names) {
+    public CommandTag(GommeStatsServer statsServer, TagType tagType, String... names) {
         super(names);
         this.statsServer = statsServer;
         this.tagType = tagType;

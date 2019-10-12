@@ -14,12 +14,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class ConsoleCommandStats extends Command {
+public class CommandStats extends Command {
     private GommeStatsServer statsServer;
 
     private DateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 
-    public ConsoleCommandStats(GommeStatsServer statsServer) {
+    public CommandStats(GommeStatsServer statsServer) {
         super("stats", "statistics");
         this.statsServer = statsServer;
     }

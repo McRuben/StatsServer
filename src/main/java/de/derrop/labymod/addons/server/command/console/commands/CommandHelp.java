@@ -7,10 +7,10 @@ import de.derrop.labymod.addons.server.command.Command;
 import de.derrop.labymod.addons.server.command.CommandMap;
 import de.derrop.labymod.addons.server.command.CommandSender;
 
-public class ConsoleCommandHelp extends Command {
+public class CommandHelp extends Command {
     private CommandMap commandMap;
 
-    public ConsoleCommandHelp(CommandMap commandMap) {
+    public CommandHelp(CommandMap commandMap) {
         super("help", "commands");
         this.commandMap = commandMap;
     }
