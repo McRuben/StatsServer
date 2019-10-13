@@ -8,8 +8,7 @@ import de.derrop.labymod.addons.server.command.Command;
 import de.derrop.labymod.addons.server.command.CommandSender;
 import de.derrop.labymod.addons.server.util.Utility;
 
-import java.util.Collection;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CommandUser extends Command {
@@ -24,10 +23,8 @@ public class CommandUser extends Command {
     @Override
     public void execute(CommandSender sender, String label, String line, String[] args) {
         if (args.length >= 2 && args[0].equalsIgnoreCase("add")) {
-            UUID uniqueId;
-            try {
-                uniqueId = UUID.fromString(args[1]);
-            } catch (IllegalArgumentException exception) {
+            UUID uniqueId = this.parseUUID(args[1]);
+            if (uniqueId == null) {
                 sender.sendMessage("This is not a valid uuid, example for a valid uuid: " + UUID.randomUUID().toString());
                 return;
             }
@@ -36,13 +33,11 @@ public class CommandUser extends Command {
             if (success) {
                 sender.sendMessage("Successfully created a new user for the uuid " + uniqueId + " with the token: " + token);
             } else {
-                sender.sendMessage("A user with that uuid already exists");
+                sender.sendMessage("A user with the uuid " + uniqueId + " already exists");
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("remove")) {
-            UUID uniqueId;
-            try {
-                uniqueId = UUID.fromString(args[1]);
-            } catch (IllegalArgumentException exception) {
+            UUID uniqueId = this.parseUUID(args[1]);
+            if (uniqueId == null) {
                 sender.sendMessage("This is not a valid uuid, example for a valid uuid: " + UUID.randomUUID().toString());
                 return;
             }
@@ -50,14 +45,22 @@ public class CommandUser extends Command {
             if (success) {
                 sender.sendMessage("Successfully deleted the user for the uuid " + uniqueId);
             } else {
-                sender.sendMessage("A user with that uuid does not exist");
+                sender.sendMessage("A user with the uuid " + uniqueId + " does not exist");
             }
         } else if (args.length == 1 && args[0].equalsIgnoreCase("list")) {
-            Collection<UUID> users = this.statsServer.getDatabaseProvider().getUserAuthenticator().listUsers();
-            if (users.isEmpty()) {
+            Collection<UUID> userIds = this.statsServer.getDatabaseProvider().getUserAuthenticator().listUsers();
+            if (userIds.isEmpty()) {
                 sender.sendMessage("No users found");
             } else {
-                sender.sendMessage("Users registered in the database: \n" + users.stream().map(UUID::toString).collect(Collectors.joining("\n")));
+                Map<UUID, String> users = new HashMap<>();
+                for (UUID uniqueId : userIds) {
+                    users.put(uniqueId, this.statsServer.getDatabaseProvider().getName(uniqueId));
+                }
+                sender.sendMessage("Users registered in the database: \n" +
+                        users.entrySet().stream()
+                                .map(entry -> entry.getValue() != null ? (entry.getKey() + "#" + entry.getValue()) : entry.getKey().toString())
+                                .collect(Collectors.joining("\n"))
+                );
             }
         } else {
             sender.sendMessage(
@@ -65,6 +68,14 @@ public class CommandUser extends Command {
                     "user remove <uuid>",
                     "user list"
             );
+        }
+    }
+
+    private UUID parseUUID(String input) {
+        try {
+            return UUID.fromString(input);
+        } catch (IllegalArgumentException exception) {
+            return this.statsServer.getDatabaseProvider().getUniqueId(input);
         }
     }
 }

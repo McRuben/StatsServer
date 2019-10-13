@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import de.derrop.labymod.addons.server.Match;
 import de.derrop.labymod.addons.server.function.ThrowingFunction;
+import de.derrop.labymod.addons.server.util.Utility;
 
 import java.io.File;
 import java.lang.reflect.Type;
@@ -88,4 +89,29 @@ public class DatabaseProvider {
     public UserAuthenticator getUserAuthenticator() {
         return userAuthenticator;
     }
+
+    public UUID getUniqueId(String name) {
+        return this.prepareStatement(
+                "SELECT uniqueId FROM stats WHERE name = ?",
+                preparedStatement -> {
+                    preparedStatement.setString(1, name);
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        return resultSet.next() ? Utility.convertBytesToUUID(resultSet.getBytes("uniqueId")) : null;
+                    }
+                }
+        );
+    }
+
+    public String getName(UUID uniqueId) {
+        return this.prepareStatement(
+                "SELECT name FROM stats WHERE uniqueId = ?",
+                preparedStatement -> {
+                    preparedStatement.setBytes(1, Utility.convertUUIDToBytes(uniqueId));
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        return resultSet.next() ? resultSet.getString("name") : null;
+                    }
+                }
+        );
+    }
+
 }

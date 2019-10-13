@@ -61,7 +61,7 @@ public class UserAuthenticator {
 
     public boolean deleteUser(UUID uniqueId) {
         return this.databaseProvider.prepareStatement(
-                "DELETE * FROM auth WHERE uniqueId = ?",
+                "DELETE FROM auth WHERE uniqueId = ?",
                 preparedStatement -> {
                     preparedStatement.setBytes(1, Utility.convertUUIDToBytes(uniqueId));
                     return preparedStatement.executeUpdate();

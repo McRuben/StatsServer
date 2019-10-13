@@ -80,6 +80,7 @@ public class GommeStatsServer {
         this.commandMap.registerCommand(new CommandStats(this));
         this.commandMap.registerCommand(new CommandMatch(this));
         this.commandMap.registerCommand(new CommandUser(this));
+        this.commandMap.registerCommand(new CommandList(this));
 
         this.commandMap.registerCommand(new CommandTag(this, TagType.CLAN, "ctag", "clantag", "clan-tag"));
         this.commandMap.registerCommand(new CommandTag(this, TagType.PLAYER, "utag", "usertag", "user-tag"));
@@ -160,6 +161,10 @@ public class GommeStatsServer {
         return runningMatches;
     }
 
+    public SyncServer getSyncServer() {
+        return syncServer;
+    }
+
     public void handleDisconnect(String player, String serverId) {
         if (this.runningMatches.containsKey(serverId)) {
             Match match = this.runningMatches.get(serverId);
@@ -181,7 +186,7 @@ public class GommeStatsServer {
         if (this.runningMatches.containsKey(serverId)) {
             match = this.runningMatches.get(serverId);
             match.getEndPlayers().addAll(players);
-            match.getTemporaryPlayers().addAll(players);
+            match.getTemporaryPlayers().add(player.getName());
         } else {
             match = new Match(
                     map,
@@ -191,8 +196,8 @@ public class GommeStatsServer {
                     -1,
                     false,
                     null,
-                    players,
-                    new ArrayList<>(players),
+                    new HashSet<>(players),
+                    new HashSet<>(players),
                     minecraftTexturePath,
                     new HashSet<>(Collections.singletonList(player.getName()))
             );

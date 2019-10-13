@@ -91,6 +91,10 @@ public class SyncServer implements Closeable {
         this.packetHandlers.get(packetId).add(packetHandler);
     }
 
+    public Map<UUID, SyncPlayer> getConnectedPlayers() {
+        return connectedPlayers;
+    }
+
     @Override
     public void close() {
         if (this.channel != null) {
