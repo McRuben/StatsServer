@@ -1,4 +1,4 @@
-package de.derrop.labymod.addons.server.sync;
+package de.derrop.labymod.addons.server.network.sync;
 /*
  * Created by derrop on 30.09.2019
  */
@@ -6,8 +6,9 @@ package de.derrop.labymod.addons.server.sync;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
 import de.derrop.labymod.addons.server.GommeStatsServer;
+import de.derrop.labymod.addons.server.network.sync.codec.PacketDecoder;
+import de.derrop.labymod.addons.server.network.sync.codec.PacketEncoder;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.Epoll;
@@ -15,11 +16,8 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -58,7 +56,7 @@ public class SyncServer implements Closeable {
                     protected void initChannel(Channel channel) throws Exception {
                         System.out.println("Channel connecting [" + channel.remoteAddress() + "]...");
                         channel.pipeline()
-                                .addLast(new StringEncoder(), new StringDecoder())
+                                .addLast(new PacketEncoder(), new PacketDecoder())
                                 .addLast(new PacketReader(new SyncPlayer(null, null, null, channel)));
                     }
                 })
@@ -80,7 +78,7 @@ public class SyncServer implements Closeable {
         packet.addProperty("id", packetId);
         packet.addProperty("queryId", queryId);
         packet.add("payload", payload);
-        player.getChannel().writeAndFlush(packet.toString());
+        player.getChannel().writeAndFlush(packet);
 
         return future;
     }
@@ -129,7 +127,7 @@ public class SyncServer implements Closeable {
                         JsonObject response = new JsonObject();
                         response.addProperty("queryId", queryId);
                         response.add("payload", element);
-                        ctx.channel().writeAndFlush(response.toString()).syncUninterruptibly();
+                        ctx.channel().writeAndFlush(response).syncUninterruptibly();
                     };
                 }
 

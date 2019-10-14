@@ -1,4 +1,4 @@
-package de.derrop.labymod.addons.server.sync.handler;
+package de.derrop.labymod.addons.server.network.sync.handler;
 /*
  * Created by derrop on 10.10.2019
  */
@@ -9,8 +9,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import de.derrop.labymod.addons.server.GommeStatsServer;
 import de.derrop.labymod.addons.server.database.TagType;
-import de.derrop.labymod.addons.server.sync.PacketHandler;
-import de.derrop.labymod.addons.server.sync.SyncPlayer;
+import de.derrop.labymod.addons.server.network.sync.PacketHandler;
+import de.derrop.labymod.addons.server.network.sync.SyncPlayer;
 
 import java.util.function.Consumer;
 

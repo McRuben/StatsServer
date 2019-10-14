@@ -11,9 +11,9 @@ import de.derrop.labymod.addons.server.config.GeneralConfiguration;
 import de.derrop.labymod.addons.server.database.DatabaseProvider;
 import de.derrop.labymod.addons.server.database.TagType;
 import de.derrop.labymod.addons.server.discord.DiscordBot;
-import de.derrop.labymod.addons.server.sync.SyncPlayer;
-import de.derrop.labymod.addons.server.sync.SyncServer;
-import de.derrop.labymod.addons.server.sync.handler.*;
+import de.derrop.labymod.addons.server.network.sync.SyncPlayer;
+import de.derrop.labymod.addons.server.network.sync.SyncServer;
+import de.derrop.labymod.addons.server.network.sync.handler.*;
 import de.derrop.labymod.addons.server.textures.MinecraftTextureManager;
 import io.javalin.Javalin;
 
@@ -221,6 +221,12 @@ public class GommeStatsServer {
             return;
         if (match.getTemporaryPlayers().remove(player)) {
             if (match.getTemporaryPlayers().isEmpty()) {
+                for (SyncPlayer value : this.syncServer.getConnectedPlayers().values()) {
+                    if (value.getCurrentMatch() != null && value.getCurrentMatch().getServerId().equals(serverId)) {
+                        value.setCurrentMatch(null);
+                    }
+                }
+
                 if (winners != null) {
                     match.setWinners(winners);
                     match.setFinished(true);

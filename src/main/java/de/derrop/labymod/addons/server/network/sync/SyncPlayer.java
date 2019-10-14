@@ -1,4 +1,4 @@
-package de.derrop.labymod.addons.server.sync;
+package de.derrop.labymod.addons.server.network.sync;
 /*
  * Created by derrop on 30.09.2019
  */
