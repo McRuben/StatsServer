@@ -5,6 +5,7 @@ package de.derrop.labymod.addons.server.database;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import de.derrop.labymod.addons.server.GommeStatsServer;
 import de.derrop.labymod.addons.server.Match;
 import de.derrop.labymod.addons.server.function.ThrowingFunction;
 import de.derrop.labymod.addons.server.util.Utility;
@@ -25,6 +26,8 @@ public class DatabaseProvider {
     static final Type STRING_COLLECTION_TYPE = new TypeToken<Collection<String>>() {
     }.getType();
 
+    private GommeStatsServer statsServer;
+
     final Gson gson = new Gson();
     Connection databaseConnection;
 
@@ -32,6 +35,14 @@ public class DatabaseProvider {
     private MatchProvider matchProvider = new MatchProvider(this);
     private TagProvider tagProvider = new TagProvider(this);
     private UserAuthenticator userAuthenticator = new UserAuthenticator(this);
+
+    public DatabaseProvider(GommeStatsServer statsServer) {
+        this.statsServer = statsServer;
+    }
+
+    public GommeStatsServer getStatsServer() {
+        return statsServer;
+    }
 
     public void init() {
         try {

@@ -53,10 +53,26 @@ public class CommandTag extends Command {
                                 .collect(Collectors.joining("\n"))
                 );
             }
+        } else if (args.length >= 2 && args[0].equalsIgnoreCase("tlist")) {
+            String requestTag = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+            Collection<Tag> tags = this.statsServer.getDatabaseProvider().getTagProvider().listUsers(this.tagType, requestTag);
+            if (tags.isEmpty()) {
+                sender.sendMessage("No users available with the tag \"" + requestTag + "\"");
+            } else {
+                sender.sendMessage("Users with the tag \"" + requestTag + "\": \n" +
+                        tags.stream()
+                                .map(tag -> "\"" + tag.getName() + "\" by " + tag.getCreator() + " (" + this.dateFormat.format(new Date(tag.getCreationTime())) + ")")
+                                .collect(Collectors.joining("\n"))
+                );
+            }
+        } else if (args.length == 1 && args[0].equalsIgnoreCase("tags")) {
+            Collection<String> tags = this.statsServer.getDatabaseProvider().getTagProvider().listAllTags(this.tagType);
+            sender.sendMessage("Available tags in our database: \n" + String.join("\n", tags));
         } else {
             sender.sendMessage(
                     super.getNames()[0] + " add <name> <tag>",
                     super.getNames()[0] + " remove <name> <tag>",
+                    super.getNames()[0] + " tlist <tag>",
                     super.getNames()[0] + " list <name>"
             );
         }

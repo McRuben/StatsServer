@@ -82,9 +82,18 @@ public class SyncServer implements Closeable {
         packet.addProperty("id", packetId);
         packet.addProperty("queryId", queryId);
         packet.add("payload", payload);
-        player.getChannel().writeAndFlush(packet);
+        player.send(packet);
 
         return future;
+    }
+
+    public void broadcastPacket(short packetId, JsonElement payload) {
+        System.out.println("a");
+        System.out.println(this.connectedPlayers);
+        for (SyncPlayer player : this.connectedPlayers.values()) {
+            System.out.println(player.getChannel());
+            player.sendPacket(packetId, payload);
+        }
     }
 
     public void registerHandler(short packetId, PacketHandler packetHandler) {

@@ -33,7 +33,7 @@ public class GommeStatsServer {
 
     private Javalin webServer;
     private SyncServer syncServer = new SyncServer(this);
-    private DatabaseProvider databaseProvider = new DatabaseProvider();
+    private DatabaseProvider databaseProvider = new DatabaseProvider(this);
 
     private Map<String, Match> runningMatches = new HashMap<>();
 
