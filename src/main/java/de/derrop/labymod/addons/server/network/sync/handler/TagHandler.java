@@ -43,7 +43,7 @@ public class TagHandler implements PacketHandler {
                         )
                 );
             } else if (queryType.equals("add")) {
-                boolean success = this.statsServer.getDatabaseProvider().getTagProvider().addTag(tagType, name, payload.getAsJsonObject().get("tag").getAsString());
+                boolean success = this.statsServer.getDatabaseProvider().getTagProvider().addTag(tagType, player.getUniqueId() + "#" + player.getName(), name, payload.getAsJsonObject().get("tag").getAsString());
                 if (responseConsumer != null) {
                     responseConsumer.accept(new JsonPrimitive(success));
                 }

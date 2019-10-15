@@ -16,6 +16,8 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.io.Closeable;
 import java.net.InetSocketAddress;
@@ -56,6 +58,8 @@ public class SyncServer implements Closeable {
                     protected void initChannel(Channel channel) throws Exception {
                         System.out.println("Channel connecting [" + channel.remoteAddress() + "]...");
                         channel.pipeline()
+                                .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+                                        new LengthFieldPrepender(4))
                                 .addLast(new PacketEncoder(), new PacketDecoder())
                                 .addLast(new PacketReader(new SyncPlayer(null, null, null, channel)));
                     }

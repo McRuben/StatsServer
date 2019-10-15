@@ -47,7 +47,7 @@ public class DatabaseProvider {
                     PreparedStatement::executeUpdate
             );
             this.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS tags(type VARCHAR(16), name VARCHAR(64), tag TEXT)",
+                    "CREATE TABLE IF NOT EXISTS tags(type VARCHAR(16), name VARCHAR(64), tag TEXT, creationTime LONG)",
                     PreparedStatement::executeUpdate
             );
             this.prepareStatement(

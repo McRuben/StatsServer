@@ -32,6 +32,15 @@ public class MatchEndHandler implements PacketHandler {
                 winners.add(element.getAsString());
             }
         }
-        this.statsServer.endMatch(player.getName(), winners, player.getCurrentMatch().getServerId());
+        Collection<String> players = new ArrayList<>();
+        if (payload.isJsonObject()) {
+            JsonElement element = payload.getAsJsonObject().get("players");
+            if (element != null && element.isJsonArray()) {
+                for (JsonElement playerElement : element.getAsJsonArray()) {
+                    players.add(playerElement.getAsString());
+                }
+            }
+        }
+        this.statsServer.endMatch(player.getName(), winners, players, player.getCurrentMatch().getServerId());
     }
 }

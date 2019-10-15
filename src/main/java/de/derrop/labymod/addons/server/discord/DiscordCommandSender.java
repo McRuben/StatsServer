@@ -47,6 +47,6 @@ public class DiscordCommandSender implements CommandSender {
 
     @Override
     public String getName() {
-        return this.member.getNickname() != null ? this.member.getNickname() : this.member.getUser().getName();
+        return this.member.getUser().getName();
     }
 }

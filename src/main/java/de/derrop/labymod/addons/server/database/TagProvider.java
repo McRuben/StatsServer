@@ -7,7 +7,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class TagProvider {
+public class TagProvider { //todo add time when a tag was added
 
     private DatabaseProvider databaseProvider;
 
@@ -15,7 +15,7 @@ public class TagProvider {
         this.databaseProvider = databaseProvider;
     }
 
-    public boolean addTag(TagType tagType, String name, String tag) {
+    public boolean addTag(TagType tagType, String creator, String name, String tag) {
         boolean exists = this.databaseProvider.prepareStatement(
                 "SELECT * FROM tags WHERE type = ? AND lower(name) = lower(?) AND lower(tag) = lower(?)",
                 preparedStatement -> {
@@ -32,11 +32,13 @@ public class TagProvider {
         }
 
         this.databaseProvider.prepareStatement(
-                "INSERT INTO tags (type, name, tag) VALUES (?, ?, ?)",
+                "INSERT INTO tags (type, creator, name, tag, creationTime) VALUES (?, ?, ?, ?, ?)",
                 preparedStatement -> {
                     preparedStatement.setString(1, tagType.toString());
-                    preparedStatement.setString(2, name);
-                    preparedStatement.setString(3, tag);
+                    preparedStatement.setString(2, creator);
+                    preparedStatement.setString(3, name);
+                    preparedStatement.setString(4, tag);
+                    preparedStatement.setLong(5, System.currentTimeMillis());
                     return preparedStatement.executeUpdate();
                 }
         );
@@ -55,16 +57,22 @@ public class TagProvider {
         );
     }
 
-    public Collection<String> listTags(TagType tagType, String name) {
+    public Collection<Tag> listTags(TagType tagType, String name) {
         return this.databaseProvider.prepareStatement(
                 "SELECT * FROM tags WHERE type = ? AND lower(name) = lower(?)",
                 preparedStatement -> {
                     preparedStatement.setString(1, tagType.toString());
                     preparedStatement.setString(2, name);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                        Collection<String> tags = new ArrayList<>();
+                        Collection<Tag> tags = new ArrayList<>();
                         while (resultSet.next()) {
-                            tags.add(resultSet.getString("tag"));
+                            tags.add(new Tag(
+                                    tagType,
+                                    resultSet.getString("creator"),
+                                    resultSet.getString("name"),
+                                    resultSet.getString("tag"),
+                                    resultSet.getLong("creationTime")
+                            ));
                         }
                         return tags;
                     }

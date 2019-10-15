@@ -215,7 +215,7 @@ public class GommeStatsServer {
         player.setCurrentMatch(match);
     }
 
-    public void endMatch(String player, Collection<String> winners, String serverId) {
+    public void endMatch(String player, Collection<String> winners, Collection<String> players, String serverId) {
         Match match = this.runningMatches.get(serverId);
         if (match == null)
             return;
