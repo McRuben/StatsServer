@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TagProvider {
 
@@ -87,13 +89,13 @@ public class TagProvider {
         );
     }
 
-    public Collection<String> listAllTags(TagType tagType) {
+    public Set<String> listAllTags(TagType tagType) {
         return this.databaseProvider.prepareStatement(
                 "SELECT tag FROM tags WHERE type = ?",
                 preparedStatement -> {
                     preparedStatement.setString(1, tagType.toString());
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                        Collection<String> tags = new ArrayList<>();
+                        Set<String> tags = new HashSet<>();
                         while (resultSet.next()) {
                             tags.add(resultSet.getString("tag"));
                         }
