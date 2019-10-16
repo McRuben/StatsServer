@@ -73,7 +73,8 @@ public class CommandTag extends Command {
                     super.getNames()[0] + " add <name> <tag>",
                     super.getNames()[0] + " remove <name> <tag>",
                     super.getNames()[0] + " tlist <tag>",
-                    super.getNames()[0] + " list <name>"
+                    super.getNames()[0] + " list <name>",
+                    super.getNames()[0] + " tags"
             );
         }
     }
