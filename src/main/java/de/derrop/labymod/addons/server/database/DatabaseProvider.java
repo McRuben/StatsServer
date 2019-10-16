@@ -103,7 +103,7 @@ public class DatabaseProvider {
 
     public UUID getUniqueId(String name) {
         return this.prepareStatement(
-                "SELECT uniqueId FROM stats WHERE name = ?",
+                "SELECT uniqueId FROM stats WHERE lower(name) = lower(?)",
                 preparedStatement -> {
                     preparedStatement.setString(1, name);
                     try (ResultSet resultSet = preparedStatement.executeQuery()) {
